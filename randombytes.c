@@ -1,21 +1,29 @@
 #include "randombytes.h"
-#include <assert.h>
 
-#ifdef __linux__
+#if defined(__linux__)
+/* Linux */
 # define _GNU_SOURCE
-# include <linux/random.h>
-# include <sys/syscall.h>
-# include <unistd.h>
+# include <assert.h>
 # include <errno.h>
-# include <sys/ioctl.h>
-# include <sys/types.h>
-# include <sys/stat.h>
 # include <fcntl.h>
+# include <linux/random.h>
 # include <poll.h>
+# include <sys/ioctl.h>
+# include <sys/stat.h>
+# include <sys/syscall.h>
+# include <sys/types.h>
+# include <unistd.h>
+
+#elif defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+/* Dragonfly, FreeBSD, NetBSD, OpenBSD (has arc4random) */
+# include <sys/param.h>
+# if defined(BSD)
+#  include <stdlib.h>
+# endif
 #endif
 
 
-#if defined (__linux__) && !defined (SYS_getrandom)
+#if defined(__linux__) && !defined(SYS_getrandom)
 static int randombytes_linux_get_entropy_avail(int fd)
 {
 	return ioctl(fd, RNDGETENTCNT);
@@ -61,13 +69,13 @@ static int randombytes_linux_wait_for_entropy(int device)
 	}
 	return close(fd);
 }
-#endif /* __linux__ && !SYS_getrandom */
+#endif
 
 
 void randombytes(void *buf, size_t n)
 {
-#ifdef __linux__
-# ifdef SYS_getrandom
+#if defined(__linux__)
+# if defined(SYS_getrandom)
 #  pragma message "Using getrandom system call"
 	/* Use getrandom system call */
 	int tmp = syscall(SYS_getrandom, buf, n, 0);
@@ -90,6 +98,10 @@ void randombytes(void *buf, size_t n)
 		assert(tmp != -1); /* Unrecoverable IO error */
 	}
 # endif
+#elif defined(BSD)
+# pragma message "Using arc4random system call"
+	/* Use arc4random system call */
+	arc4random_buf(buf, n);
 #else
 # error "randombytes(...) is not supported on this platform"
 #endif
