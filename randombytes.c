@@ -44,6 +44,7 @@ static void randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 		offset += ret;
 		n -= ret;
 	}
+	assert(n == 0);
 }
 #endif /* defined(__linux__) && defined(SYS_getrandom) */
 
@@ -51,7 +52,9 @@ static void randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 #if defined(__linux__) && !defined(SYS_getrandom)
 static int randombytes_linux_get_entropy_avail(int fd)
 {
-	return ioctl(fd, RNDGETENTCNT);
+	int ret;
+	ioctl(fd, RNDGETENTCNT, &ret);
+	return ret;
 }
 
 
@@ -99,19 +102,24 @@ static int randombytes_linux_wait_for_entropy(int device)
 static void randombytes_linux_randombytes_urandom(void *buf, size_t n)
 {
 	int fd;
+	size_t offset = 0;
 	ssize_t tmp;
 	do {
 		fd = open("/dev/urandom", O_RDONLY);
 	} while (fd == -1 && errno == EINTR);
 	assert(randombytes_linux_wait_for_entropy(fd) != -1);
 
+	assert(n <= SSIZE_MAX);
 	while (n > 0) {
-		tmp = read(fd, buf, n);
+		tmp = read(fd, buf + offset, n);
 		if (tmp == -1 && (errno == EAGAIN || errno == EINTR)) {
 			continue;
 		}
 		assert(tmp != -1); /* Unrecoverable IO error */
+		offset += tmp;
+		n -= tmp;
 	}
+	assert(n == 0);
 }
 #endif /* defined(__linux__) && !defined(SYS_getrandom) */
 
