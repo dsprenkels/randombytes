@@ -13,14 +13,38 @@
 # include <sys/syscall.h>
 # include <sys/types.h>
 # include <unistd.h>
+#endif /* defined(__linux__) */
 
-#elif defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 /* Dragonfly, FreeBSD, NetBSD, OpenBSD (has arc4random) */
 # include <sys/param.h>
 # if defined(BSD)
 #  include <stdlib.h>
 # endif
 #endif
+
+
+#if defined(__linux__) && defined(SYS_getrandom)
+static void randombytes_linux_randombytes_getrandom(void *buf, size_t n)
+{
+	/* getrandom does not allow you to request more than 256 bytes of random
+	 * at a time. However, the performance is still very acceptable
+	 * (~200Mb/s on my laptop). So we just request chunk by chunk.
+	 */
+	size_t offset = 0, chunk;
+	int ret;
+	while (n > 0) {
+		do {
+			chunk = 256 < n ? 256 : n;
+			ret = syscall(SYS_getrandom, buf + offset, chunk, 0);
+		} while (ret == -1 && errno == EINTR);
+		assert(ret != -1);
+		offset += ret;
+		n -= ret;
+	}
+}
+#endif /* defined(__linux__) && defined(SYS_getrandom) */
 
 
 #if defined(__linux__) && !defined(SYS_getrandom)
@@ -69,20 +93,10 @@ static int randombytes_linux_wait_for_entropy(int device)
 	}
 	return close(fd);
 }
-#endif
 
 
-void randombytes(void *buf, size_t n)
+static void randombytes_linux_randombytes_urandom(void *buf, size_t n)
 {
-#if defined(__linux__)
-# if defined(SYS_getrandom)
-#  pragma message "Using getrandom system call"
-	/* Use getrandom system call */
-	int tmp = syscall(SYS_getrandom, buf, n, 0);
-	assert(tmp == n); /* Failure indicates a bug in the code */
-# else
-#  pragma message "Using /dev/urandom device"
-	/* When we have enough entropy, we can read from /dev/urandom */
 	int fd;
 	ssize_t tmp;
 	do {
@@ -97,11 +111,34 @@ void randombytes(void *buf, size_t n)
 		}
 		assert(tmp != -1); /* Unrecoverable IO error */
 	}
+}
+#endif /* defined(__linux__) && !defined(SYS_getrandom) */
+
+
+#if defined(BSD)
+static void randombytes_bsd_randombytes(void *buf, size_t n)
+{
+	arc4random_buf(buf, n);
+}
+#endif /* defined(BSD) */
+
+
+void randombytes(void *buf, size_t n)
+{
+#if defined(__linux__)
+# if defined(SYS_getrandom)
+#  pragma message "Using getrandom system call"
+	/* Use getrandom system call */
+	randombytes_linux_randombytes_getrandom(buf, n);
+# else
+#  pragma message "Using /dev/urandom device"
+	/* When we have enough entropy, we can read from /dev/urandom */
+	randombytes_linux_randombytes_urandom(buf, n);
 # endif
 #elif defined(BSD)
 # pragma message "Using arc4random system call"
 	/* Use arc4random system call */
-	arc4random_buf(buf, n);
+	randombytes_bsd_randombytes(buf, n);
 #else
 # error "randombytes(...) is not supported on this platform"
 #endif
