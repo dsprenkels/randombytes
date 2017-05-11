@@ -28,15 +28,16 @@
 #if defined(__linux__) && defined(SYS_getrandom)
 static void randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 {
-	/* getrandom does not allow you to request more than 256 bytes of random
-	 * at a time. However, the performance is still very acceptable
-	 * (~200Mb/s on my laptop). So we just request chunk by chunk.
+	/* I have thought about using a separate PRF, seeded by getrandom, but
+	 * it turns out that the performance of getrandom is good enough
+	 * (250 MB/s on my laptop).
 	 */
 	size_t offset = 0, chunk;
 	int ret;
 	while (n > 0) {
+		/* getrandom does not allow chunks larger than 33554431 */
+		chunk = n <= 33554431 ? n : 33554431;
 		do {
-			chunk = 256 < n ? 256 : n;
 			ret = syscall(SYS_getrandom, buf + offset, chunk, 0);
 		} while (ret == -1 && errno == EINTR);
 		assert(ret != -1);
