@@ -26,7 +26,7 @@
 
 
 #if defined(__linux__) && defined(SYS_getrandom)
-static void randombytes_linux_randombytes_getrandom(void *buf, size_t n)
+static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 {
 	/* I have thought about using a separate PRF, seeded by getrandom, but
 	 * it turns out that the performance of getrandom is good enough
@@ -40,11 +40,12 @@ static void randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 		do {
 			ret = syscall(SYS_getrandom, buf + offset, chunk, 0);
 		} while (ret == -1 && errno == EINTR);
-		assert(ret != -1);
+		if (ret < 0) return ret;
 		offset += ret;
 		n -= ret;
 	}
 	assert(n == 0);
+	return 0;
 }
 #endif /* defined(__linux__) && defined(SYS_getrandom) */
 
@@ -76,10 +77,7 @@ static int randombytes_linux_wait_for_entropy(int device)
 		fd = open("/dev/random", O_RDONLY);
 	} while (fd == -1 && errno == EINTR); /* EAGAIN will not occur */
 	if (fd == -1) {
-		/* Impossible to recover without returning something other than
-		 * void and while not compromising any security. If opening
-		 * `/dev/random` is impossible, this probably indicates a bug in
-		 * the code (or you might * have bigger problems on your hands). */
+		/* Unrecoverable IO error */
 		return -1;
 	}
 
@@ -95,11 +93,12 @@ static int randombytes_linux_wait_for_entropy(int device)
 		} while (retcode == -1 && errno == EINTR);
 		return -1;
 	}
-	return close(fd);
+	retcode = close(fd);
+	return retcode;
 }
 
 
-static void randombytes_linux_randombytes_urandom(void *buf, size_t n)
+static int randombytes_linux_randombytes_urandom(void *buf, size_t n)
 {
 	int fd;
 	size_t offset = 0;
@@ -107,47 +106,52 @@ static void randombytes_linux_randombytes_urandom(void *buf, size_t n)
 	do {
 		fd = open("/dev/urandom", O_RDONLY);
 	} while (fd == -1 && errno == EINTR);
-	assert(randombytes_linux_wait_for_entropy(fd) != -1);
+	if (randombytes_linux_wait_for_entropy(fd) == -1) return -1;
 
-	assert(n <= SSIZE_MAX);
+	if (n > SSIZE_MAX) {
+		errno = EINVAL;
+		return -1;
+	}
 	while (n > 0) {
 		tmp = read(fd, buf + offset, n);
 		if (tmp == -1 && (errno == EAGAIN || errno == EINTR)) {
 			continue;
 		}
-		assert(tmp != -1); /* Unrecoverable IO error */
+		if (tmp == -1) return -1; /* Unrecoverable IO error */
 		offset += tmp;
 		n -= tmp;
 	}
 	assert(n == 0);
+	return 0;
 }
 #endif /* defined(__linux__) && !defined(SYS_getrandom) */
 
 
 #if defined(BSD)
-static void randombytes_bsd_randombytes(void *buf, size_t n)
+static int randombytes_bsd_randombytes(void *buf, size_t n)
 {
 	arc4random_buf(buf, n);
+	return 0;
 }
 #endif /* defined(BSD) */
 
 
-void randombytes(void *buf, size_t n)
+int randombytes(void *buf, size_t n)
 {
 #if defined(__linux__)
 # if defined(SYS_getrandom)
 #  pragma message "Using getrandom system call"
 	/* Use getrandom system call */
-	randombytes_linux_randombytes_getrandom(buf, n);
+	return randombytes_linux_randombytes_getrandom(buf, n);
 # else
 #  pragma message "Using /dev/urandom device"
 	/* When we have enough entropy, we can read from /dev/urandom */
-	randombytes_linux_randombytes_urandom(buf, n);
+	return randombytes_linux_randombytes_urandom(buf, n);
 # endif
 #elif defined(BSD)
 # pragma message "Using arc4random system call"
 	/* Use arc4random system call */
-	randombytes_bsd_randombytes(buf, n);
+	return randombytes_bsd_randombytes(buf, n);
 #else
 # error "randombytes(...) is not supported on this platform"
 #endif
