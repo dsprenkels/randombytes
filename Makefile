@@ -7,4 +7,4 @@ librandombytes.a: randombytes.o
 
 .PHONY: clean
 clean:
-	$(RM) randombytes.a randombytes.o
+	$(RM) librandombytes.a randombytes.o
