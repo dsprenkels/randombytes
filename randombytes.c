@@ -169,20 +169,20 @@ int randombytes(void *buf, size_t n)
 {
 #if defined(__linux__)
 # if defined(SYS_getrandom)
-#  pragma message "Using getrandom system call"
+#  pragma message("Using getrandom system call")
 	/* Use getrandom system call */
 	return randombytes_linux_randombytes_getrandom(buf, n);
 # else
-#  pragma message "Using /dev/urandom device"
+#  pragma message("Using /dev/urandom device")
 	/* When we have enough entropy, we can read from /dev/urandom */
 	return randombytes_linux_randombytes_urandom(buf, n);
 # endif
 #elif defined(BSD)
-# pragma message "Using arc4random system call"
+# pragma message("Using arc4random system call")
 	/* Use arc4random system call */
 	return randombytes_bsd_randombytes(buf, n);
 #elif defined(_WIN32)
-# pragma message "Using Windows cryptographic API"
+# pragma message("Using Windows cryptographic API")
 	/* Use windows API */
 	return randombytes_win32_randombytes(buf, n);
 #else
