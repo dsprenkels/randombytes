@@ -1,8 +1,13 @@
 #ifndef sss_RANDOMBYTES_H
 #define sss_RANDOMBYTES_H
 
+#ifdef _WIN32
+/* Load size_t on windows */
+#include <CRTDEFS.H>
+#else
 #include <sys/syscall.h>
 #include <unistd.h>
+#endif /* _WIN32 */
 
 
 /*

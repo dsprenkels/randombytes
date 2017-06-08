@@ -1,5 +1,12 @@
 #include "randombytes.h"
 
+#if defined(_WIN32)
+/* Windows */
+# include <windows.h>
+# include <wincrypt.h> /* CryptAcquireContext, CryptGenRandom */
+#endif /* defined(_WIN32) */
+
+
 #if defined(__linux__)
 /* Linux */
 # define _GNU_SOURCE
@@ -23,6 +30,28 @@
 #  include <stdlib.h>
 # endif
 #endif
+
+
+#if defined(_WIN32)
+static int randombytes_win32_randombytes(void* buf, const size_t n)
+{
+	HCRYPTPROV ctx;
+	ULONG i;
+	BOOL tmp;
+
+	tmp = CryptAcquireContext(&ctx, NULL, NULL, PROV_RSA_FULL,
+	                          CRYPT_VERIFYCONTEXT);
+	if (tmp == FALSE) return -1;
+
+	tmp = CryptGenRandom(ctx, n, (BYTE*) buf);
+	if (tmp == FALSE) return -1;
+
+	tmp = CryptReleaseContext(ctx, 0);
+	if (tmp == FALSE) return -1;
+
+	return 0;
+}
+#endif /* defined(_WIN32) */
 
 
 #if defined(__linux__) && defined(SYS_getrandom)
@@ -152,6 +181,10 @@ int randombytes(void *buf, size_t n)
 # pragma message "Using arc4random system call"
 	/* Use arc4random system call */
 	return randombytes_bsd_randombytes(buf, n);
+#elif defined(_WIN32)
+# pragma message "Using Windows cryptographic API"
+	/* Use windows API */
+	return randombytes_win32_randombytes(buf, n);
 #else
 # error "randombytes(...) is not supported on this platform"
 #endif
