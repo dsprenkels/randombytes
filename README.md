@@ -23,7 +23,7 @@ process.
 
 On sensible systems (like the ones with `arc4random`) the latency is very low.
 However, this is totally not guaranteed. Do not expect this function to be very
-fast. Benchmark for your specific setup, and use a CSPRNG if you need.
+fast. Benchmark for your specific setup, and use a fast CSPRNG if you need.
 
 Example code:
 
