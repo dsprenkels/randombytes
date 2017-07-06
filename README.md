@@ -60,6 +60,15 @@ source. We will always use this random source. This essentially means that
 the implementation is highly platform-dependent. For example we use `getrandom`
 on Linux and `arc4random` on BSD systems.
 
+### What if the OS's random generator is bad?
+
+If you are dealing with an OS that has a compromised random generator you are
+out of luck. The reason why you cannot generate high quality random data from
+userspace is that userspace is made so that everything is too deterministic.
+A secure random generator needs a good source of entropy, such as 2.4 GHz noise
+or the user's mouse movements. Collecting these kinds of events only works well
+when working on the lowest level.
+
 ## Questions
 
 ### It does not compile on my platform!
