@@ -12,7 +12,7 @@ can use this library.
 
 `randombytes` takes two arguments:
 1. A pointer to the buffer
-2. The length of the byffer in bytes
+2. The length of the buffer in bytes
 
 The function will always return an `int` which will be `0` on success. The
 caller _must_ check this. If some kind of error occured, `errno` MAY contain a
