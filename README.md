@@ -39,7 +39,7 @@ int main()
     uint8_t buf[20];
     size_t i;
 
-    ret = randombytes(&buf, sizeof(buf));
+    ret = randombytes(&buf[0], sizeof(buf));
     if (ret != 0) {
         printf("Error in `randombytes`");
         return 1;
