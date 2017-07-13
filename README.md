@@ -54,11 +54,11 @@ int main()
 
 ## How secure is it really?
 
-While building this I keep one rule of thumb, which is: **Trust the OS**.
-Most OS'es implement a secure random source, which is seeded by a good entropy
-source. We will always use this random source. This essentially means that
-the implementation is highly platform-dependent. For example we use `getrandom`
-on Linux and `arc4random` on BSD systems.
+While building this I keep one rule of thumb which is: **Trust the OS**.
+Most OS'es implement a secure random generator, which is seeded by a good
+entropy source. We will always use this random source. This essentially means
+that the implementation is highly platform-dependent. For example we use
+`getrandom` on Linux and `arc4random` on BSD systems.
 
 ### What if the OS's random generator is bad?
 
