@@ -4,7 +4,7 @@
 [![Appveyor](https://ci.appveyor.com/api/projects/status/github/dsprenkels/randombytes?branch=master&svg=true)](https://ci.appveyor.com/project/dsprenkels/randombytes)
 
 `randombytes` is a library that exposes a single function for retrieving
-_crypto-secure_. It is loosely based on [Libsodium's random bytes
+_crypto-secure_ random bytes. It is loosely based on [Libsodium's random bytes
 API][libsodium_randombytes]. If you can, you should use that one. Otherwise, you
 can use this library.
 
