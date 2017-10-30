@@ -15,11 +15,18 @@
 # include <fcntl.h>
 # include <linux/random.h>
 # include <poll.h>
+# include <stdint.h>
 # include <sys/ioctl.h>
 # include <sys/stat.h>
 # include <sys/syscall.h>
 # include <sys/types.h>
 # include <unistd.h>
+
+// We need SSIZE_MAX as the maximum read len from /dev/urandom
+# if !defined(SSIZE_MAX)
+#  define SSIZE_MAX (SIZE_MAX / 2 - 1)
+# endif /* defined(SSIZE_MAX) */
+
 #endif /* defined(__linux__) */
 
 

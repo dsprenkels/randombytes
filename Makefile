@@ -1,4 +1,5 @@
-CFLAGS = -Wall -Wpointer-arith -g -O2
+CFLAGS = -m64 -std=c99 -pedantic -Wall -Wshadow -Wpointer-arith -Wcast-qual \
+        -Wstrict-prototypes -Wmissing-prototypes -g -O2
 
 all: librandombytes.a
 
