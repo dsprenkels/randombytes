@@ -67,7 +67,7 @@ static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 		/* getrandom does not allow chunks larger than 33554431 */
 		chunk = n <= 33554431 ? n : 33554431;
 		do {
-			ret = syscall(SYS_getrandom, buf + offset, chunk, 0);
+			ret = syscall(SYS_getrandom, (char *)buf + offset, chunk, 0);
 		} while (ret == -1 && errno == EINTR);
 		if (ret < 0) return ret;
 		offset += ret;
@@ -142,7 +142,7 @@ static int randombytes_linux_randombytes_urandom(void *buf, size_t n)
 		return -1;
 	}
 	while (n > 0) {
-		tmp = read(fd, buf + offset, n);
+		tmp = read(fd, (char *)buf + offset, n);
 		if (tmp == -1 && (errno == EAGAIN || errno == EINTR)) {
 			continue;
 		}
