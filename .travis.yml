@@ -6,3 +6,5 @@ os:
 compiler:
   - clang
   - gcc
+script:
+  - make && make check
