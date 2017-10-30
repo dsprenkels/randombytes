@@ -137,19 +137,16 @@ static int randombytes_linux_wait_for_entropy(int device)
 static int randombytes_linux_randombytes_urandom(void *buf, size_t n)
 {
 	int fd;
-	size_t offset = 0;
+	size_t offset = 0, count;
 	ssize_t tmp;
 	do {
 		fd = open("/dev/urandom", O_RDONLY);
 	} while (fd == -1 && errno == EINTR);
 	if (randombytes_linux_wait_for_entropy(fd) == -1) return -1;
 
-	if (n > SSIZE_MAX) {
-		errno = EINVAL;
-		return -1;
-	}
 	while (n > 0) {
-		tmp = read(fd, (char *)buf + offset, n);
+		count = n <= SSIZE_MAX ? n : SSIZE_MAX;
+		tmp = read(fd, (char *)buf + offset, count);
 		if (tmp == -1 && (errno == EAGAIN || errno == EINTR)) {
 			continue;
 		}
