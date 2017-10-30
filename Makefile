@@ -13,4 +13,4 @@ check: test
 
 .PHONY: clean
 clean:
-	$(RM) librandombytes.a randombytes.o
+	$(RM) librandombytes.a randombytes.o test test.o
