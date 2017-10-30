@@ -1,4 +1,4 @@
-CFLAGS = -Wall -g -O2
+CFLAGS = -Wall -Wpointer-arith -g -O2
 
 all: librandombytes.a
 
