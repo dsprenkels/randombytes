@@ -1,4 +1,5 @@
 #include "randombytes.h"
+#include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
 
@@ -11,7 +12,7 @@ int main(void)
 
     ret = randombytes(buf, sizeof(buf));
     if (ret != 0) {
-        printf("Error in `randombytes`");
+        printf("Error in `randombytes`: %d\n", errno);
         return 1;
     }
     for (i = 0; i < sizeof(buf); ++i) {
