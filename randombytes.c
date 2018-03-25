@@ -38,23 +38,10 @@
 # endif
 #endif
 
-#ifdef __EMSCRIPTEN__
-#include <stdlib.h>
-#include <emscripten.h>
-int randombytes_js_randombytes_nodejs(void *buf, size_t n) {
-	size_t c;
-	char *bytes = (char*) EM_ASM_INT({
-			const crypto = require('crypto');
-			var out = _malloc($0);
-			writeArrayToMemory(crypto.randomBytes($0), out);
-			return out;
-		}, n);
-	for(c=0;c<n;c++)
-		((char*)buf)[c] = bytes[c];
-	free(bytes);
-	return 0;
-}
-#endif
+#if defined(__EMSCRIPTEN__)
+# include <emscripten.h>
+#endif /* defined(__EMSCRIPTEN__) */
+
 
 #if defined(_WIN32)
 static int randombytes_win32_randombytes(void* buf, const size_t n)
@@ -183,6 +170,24 @@ static int randombytes_bsd_randombytes(void *buf, size_t n)
 	return 0;
 }
 #endif /* defined(BSD) */
+
+
+#if defined(__EMSCRIPTEN__)
+static int randombytes_js_randombytes_nodejs(void *buf, size_t n) {
+	size_t c;
+	int ret = EM_ASM_INT({
+		const crypto = require('crypto');
+		try {
+			writeArrayToMemory(crypto.randomBytes($1), $0);
+			return 0;
+		} catch (error) {
+			return -1;
+		}
+	}, buf, n);
+	return ret;
+}
+#endif /* defined(__EMSCRIPTEN__) */
+
 
 int randombytes(void *buf, size_t n)
 {
