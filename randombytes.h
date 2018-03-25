@@ -5,7 +5,6 @@
 /* Load size_t on windows */
 #include <CRTDEFS.H>
 #else
-#include <sys/syscall.h>
 #include <unistd.h>
 #endif /* _WIN32 */
 
