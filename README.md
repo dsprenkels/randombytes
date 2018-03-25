@@ -76,6 +76,10 @@ when working on the lowest level.
 [Please open an issue.](https://github.com/dsprenkels/randombytes/issues/new)
 If possible I will try to make a `randombytes` implementation for your platform.
 
+### Do you have bindings for language _x_?
+
+No, your language probably already has a random source. Use that one.
+
 ### Other
 
 Feel free to send me an email on my Github associated e-mail address.
