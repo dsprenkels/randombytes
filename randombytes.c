@@ -1,3 +1,10 @@
+// In the case that are compiling on linux, we need to define _GNU_SOURCE
+// *before* randombytes.h is included. Otherwise SYS_getrandom will not be
+// declared.
+#if defined(__linux__)
+# define _GNU_SOURCE
+#endif /* defined(__linux__) */
+
 #include "randombytes.h"
 
 #if defined(_WIN32)
@@ -9,7 +16,6 @@
 
 #if defined(__linux__)
 /* Linux */
-# define _GNU_SOURCE
 # include <assert.h>
 # include <errno.h>
 # include <fcntl.h>
