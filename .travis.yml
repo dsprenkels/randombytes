@@ -1,5 +1,4 @@
 language: c
-script: make
 os:
   - linux
   - osx
@@ -8,6 +7,14 @@ compiler:
   - gcc
 matrix:
   include:
+    - os: linux
+      compiler: musl-gcc
+      addons:
+        apt:
+          packages:
+            - musl
+            - musl-dev
+            - musl-tools
     - language: node_js
       node_js: "node"
       sudo: required
@@ -26,7 +33,6 @@ matrix:
       script:
         - docker exec -it emscripten make test.js
         - make check-js
-
 script:
   - make
   - make check

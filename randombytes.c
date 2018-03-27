@@ -16,10 +16,15 @@
 
 #if defined(__linux__)
 /* Linux */
+// We would need to include <linux/random.h>, but not every target has access
+// to the linux headers. We only need RNDGETENTCNT, so we instead inline it.
+// RNDGETENTCNT is originally defined in `include/uapi/linux/random.h` in the
+// linux repo.
+# define RNDGETENTCNT 0x80045200
+
 # include <assert.h>
 # include <errno.h>
 # include <fcntl.h>
-# include <linux/random.h>
 # include <poll.h>
 # include <stdint.h>
 # include <sys/ioctl.h>
