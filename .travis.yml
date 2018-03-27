@@ -1,10 +1,19 @@
 language: c
-script: make
 os:
   - linux
   - osx
 compiler:
   - clang
   - gcc
+matrix:
+  include:
+    - os: linux
+      compiler: musl-gcc
+      addons:
+        apt:
+          packages:
+            - musl
+            - musl-dev
+            - musl-tools
 script:
   - make && make check
