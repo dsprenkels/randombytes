@@ -44,12 +44,15 @@
 # endif
 #endif
 
+#if defined(__EMSCRIPTEN__)
+# include <emscripten.h>
+#endif /* defined(__EMSCRIPTEN__) */
+
 
 #if defined(_WIN32)
 static int randombytes_win32_randombytes(void* buf, const size_t n)
 {
 	HCRYPTPROV ctx;
-	ULONG i;
 	BOOL tmp;
 
 	tmp = CryptAcquireContext(&ctx, NULL, NULL, PROV_RSA_FULL,
@@ -175,9 +178,28 @@ static int randombytes_bsd_randombytes(void *buf, size_t n)
 #endif /* defined(BSD) */
 
 
+#if defined(__EMSCRIPTEN__)
+static int randombytes_js_randombytes_nodejs(void *buf, size_t n) {
+	int ret = EM_ASM_INT({
+		const crypto = require('crypto');
+		try {
+			writeArrayToMemory(crypto.randomBytes($1), $0);
+			return 0;
+		} catch (error) {
+			return -1;
+		}
+	}, buf, n);
+	return ret;
+}
+#endif /* defined(__EMSCRIPTEN__) */
+
+
 int randombytes(void *buf, size_t n)
 {
-#if defined(__linux__)
+#if defined(__EMSCRIPTEN__)
+# pragma message("Using crypto api from NodeJS")
+	return randombytes_js_randombytes_nodejs(buf, n);
+#elif defined(__linux__)
 # if defined(SYS_getrandom)
 #  pragma message("Using getrandom system call")
 	/* Use getrandom system call */
