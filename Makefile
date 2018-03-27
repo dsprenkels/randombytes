@@ -8,12 +8,28 @@ all: librandombytes.a
 librandombytes.a: randombytes.o
 	$(AR) -rcs librandombytes.a randombytes.o
 
-test: randombytes.o
+randombytes.js: CC := ${EMSCRIPTEN}/emcc
+randombytes.js: CFLAGS += -Wno-dollar-in-identifier-extension
+randombytes.js: randombytes.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+test: randombytes.o test.o
+
+test.js: CC := ${EMSCRIPTEN}/emcc
+test.js: CFLAGS += -Wno-dollar-in-identifier-extension
+test.js: randombytes.c test.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+test: randombytes.o test.o
 
 .PHONY: check
 check: test
 	./test
 
+.PHONY: check
+check-js: test.js
+	node test.js
+
 .PHONY: clean
 clean:
-	$(RM) librandombytes.a randombytes.o test test.o
+	$(RM) librandombytes.a randombytes.o randombytes.js test test.o test.js
