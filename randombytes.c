@@ -159,6 +159,7 @@ static int randombytes_linux_randombytes_urandom(void *buf, size_t n)
 	do {
 		fd = open("/dev/urandom", O_RDONLY);
 	} while (fd == -1 && errno == EINTR);
+	if (fd == -1) return -1;
 	if (randombytes_linux_wait_for_entropy(fd) == -1) return -1;
 
 	while (n > 0) {
