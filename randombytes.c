@@ -50,7 +50,10 @@
 #endif
 
 #if defined(__EMSCRIPTEN__)
+# include <assert.h>
 # include <emscripten.h>
+# include <errno.h>
+# include <stdbool.h>
 #endif /* defined(__EMSCRIPTEN__) */
 
 
@@ -185,8 +188,13 @@ static int randombytes_bsd_randombytes(void *buf, size_t n)
 
 #if defined(__EMSCRIPTEN__)
 static int randombytes_js_randombytes_nodejs(void *buf, size_t n) {
-	int ret = EM_ASM_INT({
-		const crypto = require('crypto');
+	const int ret = EM_ASM_INT({
+		var crypto;
+		try {
+			crypto = require('crypto');
+		} catch (error) {
+			return -2;
+		}
 		try {
 			writeArrayToMemory(crypto.randomBytes($1), $0);
 			return 0;
@@ -194,7 +202,17 @@ static int randombytes_js_randombytes_nodejs(void *buf, size_t n) {
 			return -1;
 		}
 	}, buf, n);
-	return ret;
+	switch (ret) {
+	case 0:
+		return 0;
+	case -1:
+		errno = EINVAL;
+		return -1;
+	case -2:
+		errno = ENOPKG;
+		return -1;
+	}
+	assert(false); // Unreachable
 }
 #endif /* defined(__EMSCRIPTEN__) */
 
