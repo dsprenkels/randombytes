@@ -210,7 +210,7 @@ static int randombytes_js_randombytes_nodejs(void *buf, size_t n) {
 		errno = EINVAL;
 		return -1;
 	case -2:
-		errno = ENOPKG;
+		errno = ENOSYS;
 		return -1;
 	}
 	assert(false); // Unreachable
