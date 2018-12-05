@@ -22,7 +22,7 @@ matrix:
       before_install:
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
       script:
-        - docker exec -it emscripten make test.js
+        - docker exec -it emscripten make randombytes_test.js
         - make check-js
     - language: node_js
       node_js: "lts/*"
@@ -31,7 +31,7 @@ matrix:
       before_install:
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
       script:
-        - docker exec -it emscripten make test.js
+        - docker exec -it emscripten make randombytes_test.js
         - make check-js
 script:
   - make

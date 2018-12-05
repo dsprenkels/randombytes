@@ -104,14 +104,6 @@ static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 
 
 #if defined(__linux__) && !defined(SYS_getrandom)
-static int randombytes_linux_get_entropy_avail(int fd)
-{
-	int ret;
-	ioctl(fd, RNDGETENTCNT, &ret);
-	return ret;
-}
-
-
 static int randombytes_linux_wait_for_entropy(int device)
 {
 	/* We will block on /dev/random, because any increase in the OS' entropy
@@ -119,10 +111,18 @@ static int randombytes_linux_wait_for_entropy(int device)
 	 * because we don't *actually* want to read from the device. */
 	const int bits = 128;
 	struct pollfd pfd;
-	int fd, retcode; /* Used as file descriptor *and* poll() return code */
+	int fd;
+	int retcode, retcode_error = 0; // Used as return codes throughout this function
+	int entropy = 0;
 
 	/* If the device has enough entropy already, we will want to return early */
-	if (randombytes_linux_get_entropy_avail(device) >= bits) {
+	retcode = ioctl(device, RNDGETENTCNT, &entropy);
+	if (retcode != 0) {
+		// Unrecoverable ioctl error
+		// TODO(dsprenkels) Use `/proc/sys/kernel/random/entropy_avail`
+		return retcode;
+	}
+	if (entropy >= bits) {
 		return 0;
 	}
 
@@ -136,17 +136,32 @@ static int randombytes_linux_wait_for_entropy(int device)
 
 	pfd.fd = fd;
 	pfd.events = POLLIN;
-	do {
+	for (;;) {
 		retcode = poll(&pfd, 1, -1);
-	} while ((retcode == -1 && (errno == EINTR || errno == EAGAIN)) ||
-	         randombytes_linux_get_entropy_avail(device) < bits);
-	if (retcode != 1) {
-		do {
-			retcode = close(fd);
-		} while (retcode == -1 && errno == EINTR);
-		return -1;
+		if (retcode == -1 && (errno == EINTR || errno == EAGAIN)) {
+			continue;
+		} else if (retcode == 1) {
+			retcode = ioctl(device, RNDGETENTCNT, &entropy);
+			if (retcode != 0) {
+				// Unrecoverable ioctl error
+				retcode_error = retcode;
+				break;
+			}
+			if (entropy >= bits) {
+				break;
+			}		
+		} else {
+			// Unreachable: poll() can should only return -1 or 1
+			retcode_error = -1;
+			break;
+		}
 	}
-	retcode = close(fd);
+	do {
+		retcode = close(fd);
+	} while (retcode == -1 && errno == EINTR);
+	if (retcode_error != 0) {
+		return retcode_error;
+	}
 	return retcode;
 }
 
