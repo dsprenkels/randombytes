@@ -33,8 +33,8 @@ check: randombytes_test
 	./randombytes_test
 
 .PHONY: check
-check-js: test.js
-	node test.js
+check-js: randombytes_test.js
+	node randombytes_test.js
 
 .PHONY: clean
 clean:
