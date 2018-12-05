@@ -1,7 +1,13 @@
-CFLAGS += -g -O2 -m64 -std=c99 -pedantic \
-	-Wall -Wshadow -Wpointer-arith -Wcast-qual -Wformat -Wformat-security \
-	-Werror=format-security -Wstrict-prototypes -Wmissing-prototypes \
+CFLAGS := -g -O2 -m64 -std=c99 \
+	-Wall -Wextra -Wshadow -Wpointer-arith -Wcast-qual -Wformat \
+	-Wformat-security -Werror=format-security -Wstrict-prototypes \
 	-D_FORTIFY_SOURCE=2 -fPIC -fno-strict-overflow
+
+TEST_WRAPS := -Wl,-wrap=ioctl
+
+ifeq ($(shell uname -o), GNU/Linux)
+	TEST_LDFLAGS := $(TEST_WRAPS)
+endif
 
 all: librandombytes.a
 
@@ -13,18 +19,18 @@ randombytes.js: CFLAGS += -Wno-dollar-in-identifier-extension
 randombytes.js: randombytes.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
-test: randombytes.o test.o
+randombytes_test: CFLAGS+=-Wno-implicit-function-declaration
+randombytes_test: LDFLAGS:=$(TEST_LDFLAGS)
+randombytes_test: randombytes_test.c
 
-test.js: CC := ${EMSCRIPTEN}/emcc
-test.js: CFLAGS += -Wno-dollar-in-identifier-extension
-test.js: randombytes.c test.c
+randombytes_test.js: CC := ${EMSCRIPTEN}/emcc
+randombytes_test.js: CFLAGS += -Wno-dollar-in-identifier-extension
+randombytes_test.js: randombytes_test.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
-test: randombytes.o test.o
-
 .PHONY: check
-check: test
-	./test
+check: randombytes_test
+	./randombytes_test
 
 .PHONY: check
 check-js: test.js
@@ -32,4 +38,4 @@ check-js: test.js
 
 .PHONY: clean
 clean:
-	$(RM) librandombytes.a randombytes.o randombytes.js test test.o test.js
+	$(RM) librandombytes.a randombytes.o randombytes.js randombytes_test randombytes_test.o randombytes_test.js
