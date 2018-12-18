@@ -76,10 +76,12 @@ static void test_getrandom_interrupted(void) {
 }
 
 static void test_issue_17(void) {
-	uint8_t buf[20] = {};
-	const int ret = randombytes(buf, sizeof(buf));
-	assert(ret == -1);
-	assert(errno = ENOTTY);
+	uint8_t buf1[20] = {}, buf2[sizeof(buf1)] = {};
+	const int ret1 = randombytes(buf1, sizeof(buf1));
+	const int ret2 = randombytes(buf2, sizeof(buf2));
+	assert(ret1 == 0);
+	assert(ret2 == 0);
+	assert(memcmp(buf1, buf2, sizeof(buf1)) != 0);
 }
 
 // ======== Mock OS functions to simulate uncommon behavior ========
