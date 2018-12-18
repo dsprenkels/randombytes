@@ -27,6 +27,7 @@
 # include <fcntl.h>
 # include <poll.h>
 # include <stdint.h>
+# include <stdio.h>
 # include <sys/ioctl.h>
 # include <sys/stat.h>
 # include <sys/syscall.h>
@@ -104,23 +105,50 @@ static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 
 
 #if defined(__linux__) && !defined(SYS_getrandom)
+static int randombytes_linux_read_entropy_ioctl(int device, int *entropy)
+{
+	return ioctl(device, RNDGETENTCNT, entropy);
+}
+
+static int randombytes_linux_read_entropy_proc(FILE *stream, int *entropy)
+{
+	int retcode;	
+	do {
+		rewind(stream);
+		retcode = fscanf(stream, "%d", entropy);
+	} while (retcode != 1 && errno == EINTR);
+	if (retcode != 1) {
+		return -1;
+	}
+	return 0;
+}
+
 static int randombytes_linux_wait_for_entropy(int device)
 {
 	/* We will block on /dev/random, because any increase in the OS' entropy
 	 * level will unblock the request. I use poll here (as does libsodium),
 	 * because we don't *actually* want to read from the device. */
+	enum { IOCTL, PROC } strategy = IOCTL;
 	const int bits = 128;
 	struct pollfd pfd;
 	int fd;
+	FILE *proc_file;
 	int retcode, retcode_error = 0; // Used as return codes throughout this function
 	int entropy = 0;
 
 	/* If the device has enough entropy already, we will want to return early */
-	retcode = ioctl(device, RNDGETENTCNT, &entropy);
-	if (retcode != 0) {
+	retcode = randombytes_linux_read_entropy_ioctl(device, &entropy);
+	if (retcode != 0 && errno == ENOTTY) {
+		/* The ioctl call on /dev/urandom has failed due to a ENOTTY (i.e.
+		 * unsupported action). We will fall back to reading from
+		 * `/proc/sys/kernel/random/entropy_avail`. This is obviously less
+		 * ideal, but at this point it seems we have no better option. */
+		strategy = PROC;
+		// Open the entropy count file
+		proc_file = fopen("/proc/sys/kernel/random/entropy_avail", "r");
+	} else if (retcode != 0) {
 		// Unrecoverable ioctl error
-		// TODO(dsprenkels) Use `/proc/sys/kernel/random/entropy_avail`
-		return retcode;
+		return -1;
 	}
 	if (entropy >= bits) {
 		return 0;
@@ -141,9 +169,16 @@ static int randombytes_linux_wait_for_entropy(int device)
 		if (retcode == -1 && (errno == EINTR || errno == EAGAIN)) {
 			continue;
 		} else if (retcode == 1) {
-			retcode = ioctl(device, RNDGETENTCNT, &entropy);
+			if (strategy == IOCTL) {
+				retcode = randombytes_linux_read_entropy_ioctl(device, &entropy);
+			} else if (strategy == PROC) {
+				retcode = randombytes_linux_read_entropy_proc(proc_file, &entropy);
+			} else {
+				return -1; // Unreachable
+			}
+			
 			if (retcode != 0) {
-				// Unrecoverable ioctl error
+				// Unrecoverable I/O error
 				retcode_error = retcode;
 				break;
 			}
@@ -151,7 +186,7 @@ static int randombytes_linux_wait_for_entropy(int device)
 				break;
 			}		
 		} else {
-			// Unreachable: poll() can should only return -1 or 1
+			// Unreachable: poll() should only return -1 or 1
 			retcode_error = -1;
 			break;
 		}
@@ -159,6 +194,11 @@ static int randombytes_linux_wait_for_entropy(int device)
 	do {
 		retcode = close(fd);
 	} while (retcode == -1 && errno == EINTR);
+	if (strategy == PROC) {
+		do {
+			retcode = fclose(proc_file);
+		} while (retcode == -1 && errno == EINTR);		
+	}
 	if (retcode_error != 0) {
 		return retcode_error;
 	}
