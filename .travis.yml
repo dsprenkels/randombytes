@@ -1,10 +1,8 @@
 language: c
 os:
   - linux
-  - osx
 compiler:
   - clang
-  - gcc
 matrix:
   include:
     - os: linux
@@ -33,6 +31,19 @@ matrix:
       script:
         - docker exec -it emscripten make randombytes_test.js
         - make check-js
+    - os: osx
+      language: c
+      osx_image: xcode10.1
+      compiler: gcc
+      addons:
+        homebrew:
+          packages:
+            - gcc@8
+    - os: osx
+      language: c
+      osx_image: xcode10.1
+      compiler: clang
+
 script:
   - make
   - make check
