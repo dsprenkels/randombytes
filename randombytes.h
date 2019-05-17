@@ -1,6 +1,10 @@
 #ifndef sss_RANDOMBYTES_H
 #define sss_RANDOMBYTES_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef _WIN32
 /* Load size_t on windows */
 #include <CRTDEFS.H>
@@ -14,5 +18,8 @@
  */
 int randombytes(void *buf, size_t n);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* sss_RANDOMBYTES_H */
