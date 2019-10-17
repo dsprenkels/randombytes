@@ -1,4 +1,4 @@
-CFLAGS := -g -O2 -m64 -std=c99 \
+CFLAGS := -g -O2 -m64 -std=gnu99 \
 	-Wall -Wextra -Wshadow -Wpointer-arith -Wcast-qual -Wformat \
 	-Wformat-security -Werror=format-security -Wstrict-prototypes \
 	-D_FORTIFY_SOURCE=2 -fPIC -fno-strict-overflow
