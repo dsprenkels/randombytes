@@ -4,10 +4,23 @@ os:
 compiler:
   - clang
   - gcc
+arch:
+  - amd64
+  - arm64
 matrix:
   include:
     - os: linux
       compiler: musl-gcc
+      arch: amd64
+      addons:
+        apt:
+          packages:
+            - musl
+            - musl-dev
+            - musl-tools
+    - os: linux
+      compiler: musl-gcc
+      arch: arm64
       addons:
         apt:
           packages:
