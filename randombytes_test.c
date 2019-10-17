@@ -87,6 +87,15 @@ static void test_issue_17(void) {
 	assert(memcmp(buf1, buf2, sizeof(buf1)) != 0);
 }
 
+static void test_issue_22(void) {
+	uint8_t buf1[20] = {}, buf2[sizeof(buf1)] = {};
+	const int ret1 = randombytes(buf1, sizeof(buf1));
+	const int ret2 = randombytes(buf2, sizeof(buf2));
+	assert(ret1 == 0);
+	assert(ret2 == 0);
+	assert(memcmp(buf1, buf2, sizeof(buf1)) != 0);
+}
+
 // ======== Mock OS functions to simulate uncommon behavior ========
 
 #if defined(__linux__) && defined(SYS_getrandom)
@@ -112,6 +121,10 @@ int __wrap_ioctl(int fd, int code, int* ret) {
 		errno = ENOTTY;
 		return -1;
 	}
+	if (current_test == test_issue_17) {
+		errno = ENOSYS;
+		return -1;
+	}
 	return __real_ioctl(fd, code, ret);
 }
 #endif /* defined(__linux__) && !defined(SYS_getrandom) */
@@ -133,8 +146,10 @@ int main(void) {
 #endif /* defined(__linux__) && defined(SYS_getrandom) */
 #if defined(__linux__) && !defined(SYS_getrandom)
 	RUN_TEST(test_issue_17)
+	RUN_TEST(test_issue_22)
 #else
 	SKIP_TEST(test_issue_17)
+	SKIP_TEST(test_issue_22)
 #endif /* defined(__linux__) && !defined(SYS_getrandom) */
 	return 0;
 }

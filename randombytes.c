@@ -138,11 +138,17 @@ static int randombytes_linux_wait_for_entropy(int device)
 
 	/* If the device has enough entropy already, we will want to return early */
 	retcode = randombytes_linux_read_entropy_ioctl(device, &entropy);
-	if (retcode != 0 && errno == ENOTTY) {
-		/* The ioctl call on /dev/urandom has failed due to a ENOTTY (i.e.
-		 * unsupported action). We will fall back to reading from
-		 * `/proc/sys/kernel/random/entropy_avail`. This is obviously less
-		 * ideal, but at this point it seems we have no better option. */
+	// printf("errno: %d (%s)\n", errno, strerror(errno));
+	if (retcode != 0 && (errno == ENOTTY || errno == ENOSYS)) {
+		// The ioctl call on /dev/urandom has failed due to a
+		//   - ENOTTY (unsupported action), or
+		//   - ENOSYS (invalid ioctl; this happens on MIPS, see #22).
+		//
+		// We will fall back to reading from
+		// `/proc/sys/kernel/random/entropy_avail`.  This less ideal,
+		// because it allocates a file descriptor, and it may not work
+		// in a chroot.  But at this point it seems we have no better
+		// options left.
 		strategy = PROC;
 		// Open the entropy count file
 		proc_file = fopen("/proc/sys/kernel/random/entropy_avail", "r");
