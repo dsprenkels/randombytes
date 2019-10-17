@@ -112,7 +112,7 @@ static int randombytes_linux_read_entropy_ioctl(int device, int *entropy)
 
 static int randombytes_linux_read_entropy_proc(FILE *stream, int *entropy)
 {
-	int retcode;	
+	int retcode;
 	do {
 		rewind(stream);
 		retcode = fscanf(stream, "%d", entropy);
@@ -176,7 +176,7 @@ static int randombytes_linux_wait_for_entropy(int device)
 			} else {
 				return -1; // Unreachable
 			}
-			
+
 			if (retcode != 0) {
 				// Unrecoverable I/O error
 				retcode_error = retcode;
@@ -184,7 +184,7 @@ static int randombytes_linux_wait_for_entropy(int device)
 			}
 			if (entropy >= bits) {
 				break;
-			}		
+			}
 		} else {
 			// Unreachable: poll() should only return -1 or 1
 			retcode_error = -1;
@@ -197,7 +197,7 @@ static int randombytes_linux_wait_for_entropy(int device)
 	if (strategy == PROC) {
 		do {
 			retcode = fclose(proc_file);
-		} while (retcode == -1 && errno == EINTR);		
+		} while (retcode == -1 && errno == EINTR);
 	}
 	if (retcode_error != 0) {
 		return retcode_error;
