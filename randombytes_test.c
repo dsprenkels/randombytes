@@ -121,7 +121,7 @@ int __wrap_ioctl(int fd, int code, int* ret) {
 int main(void) {
 	// Use `#if defined()` to enable/disable tests on a platform. If disabled,
 	// please still call `SKIP_TEST` to make sure no tests are skipped silently.
-	
+
 	RUN_TEST(test_functional)
 	RUN_TEST(test_empty)
 #if defined(__linux__) && defined(SYS_getrandom)
