@@ -29,8 +29,8 @@
 # include <stdint.h>
 # include <stdio.h>
 # include <sys/ioctl.h>
+# include <sys/random.h>
 # include <sys/stat.h>
-# include <sys/syscall.h>
 # include <sys/types.h>
 # include <unistd.h>
 
@@ -79,7 +79,7 @@ static int randombytes_win32_randombytes(void* buf, const size_t n)
 #endif /* defined(_WIN32) */
 
 
-#if defined(__linux__) && defined(SYS_getrandom)
+#if defined(__linux__) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24))
 static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 {
 	/* I have thought about using a separate PRF, seeded by getrandom, but
@@ -92,7 +92,7 @@ static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 		/* getrandom does not allow chunks larger than 33554431 */
 		chunk = n <= 33554431 ? n : 33554431;
 		do {
-			ret = syscall(SYS_getrandom, (char *)buf + offset, chunk, 0);
+			ret = getrandom ((char *)buf + offset, chunk, 0);
 		} while (ret == -1 && errno == EINTR);
 		if (ret < 0) return ret;
 		offset += ret;
@@ -101,7 +101,7 @@ static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 	assert(n == 0);
 	return 0;
 }
-#endif /* defined(__linux__) && defined(SYS_getrandom) */
+#endif /* defined(__linux__) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24)) */
 
 
 #if defined(__linux__) && !defined(SYS_getrandom)
@@ -285,7 +285,7 @@ int randombytes(void *buf, size_t n)
 # pragma message("Using crypto api from NodeJS")
 	return randombytes_js_randombytes_nodejs(buf, n);
 #elif defined(__linux__)
-# if defined(SYS_getrandom)
+# if defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24))
 #  pragma message("Using getrandom system call")
 	/* Use getrandom system call */
 	return randombytes_linux_randombytes_getrandom(buf, n);
