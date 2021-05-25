@@ -33,6 +33,7 @@
 # include <stdint.h>
 # include <stdio.h>
 # include <sys/ioctl.h>
+# include <sys/random.h>
 # include <sys/stat.h>
 # include <sys/syscall.h>
 # include <sys/types.h>
@@ -89,7 +90,31 @@ static int randombytes_wasi_randombytes(void *buf, size_t n) {
 }
 #endif /* defined(__wasi__) */
 
-#if defined(__linux__) && defined(SYS_getrandom)
+#if defined(__linux__) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24))
+static int randombytes_linux_randombytes_getrandom_function(void *buf, size_t n)
+{
+	/* I have thought about using a separate PRF, seeded by getrandom, but
+	 * it turns out that the performance of getrandom is good enough
+	 * (250 MB/s on my laptop).
+	 */
+	size_t offset = 0, chunk;
+	int ret;
+	while (n > 0) {
+	/* getrandom does not allow chunks larger than 33554431 */
+		chunk = n <= 33554431 ? n : 33554431;
+		do {
+			ret = getrandom ((char *)buf + offset, chunk, 0);
+		} while (ret == -1 && errno == EINTR);
+		if (ret < 0) return ret;
+		offset += ret;
+		n -= ret;
+	}
+	assert(n == 0);
+	return 0;
+}
+
+
+#elif defined(__linux__) && defined(SYS_getrandom)
 static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 {
 	/* I have thought about using a separate PRF, seeded by getrandom, but
@@ -111,7 +136,7 @@ static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 	assert(n == 0);
 	return 0;
 }
-#endif /* defined(__linux__) && defined(SYS_getrandom) */
+#endif /* defined(__linux__) && (defined(SYS_getrandom) or glibc version > 2.24) */
 
 
 #if defined(__linux__) && !defined(SYS_getrandom)
@@ -296,7 +321,11 @@ int randombytes(void *buf, size_t n)
 # pragma message("Using crypto api from NodeJS")
 	return randombytes_js_randombytes_nodejs(buf, n);
 #elif defined(__linux__)
-# if defined(SYS_getrandom)
+# if defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24))
+#  pragma message("Using getrandom function call")
+	/* Use getrandom system call */
+	return randombytes_linux_randombytes_getrandom_function(buf, n);
+# elif defined(SYS_getrandom)
 #  pragma message("Using getrandom system call")
 	/* Use getrandom system call */
 	return randombytes_linux_randombytes_getrandom(buf, n);
