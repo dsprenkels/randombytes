@@ -29,7 +29,9 @@
 # include <stdint.h>
 # include <stdio.h>
 # include <sys/ioctl.h>
-# include <sys/random.h>
+# if defined(__linux__) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24))
+#  include <sys/random.h>
+# endif /* defined(__linux__) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24)) */
 # include <sys/stat.h>
 # include <sys/syscall.h>
 # include <sys/types.h>
@@ -93,7 +95,7 @@ static int randombytes_linux_randombytes_getrandom_function(void *buf, size_t n)
 	/* getrandom does not allow chunks larger than 33554431 */
 		chunk = n <= 33554431 ? n : 33554431;
 		do {
-			ret = getrandom ((char *)buf + offset, chunk, 0);
+			ret = getrandom((char *)buf + offset, chunk, 0);
 		} while (ret == -1 && errno == EINTR);
 		if (ret < 0) return ret;
 		offset += ret;
