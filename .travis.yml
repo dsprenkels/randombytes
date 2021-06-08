@@ -32,6 +32,7 @@ matrix:
       sudo: required
       services: ["docker"]
       before_install:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
       script:
         - docker exec -it emscripten make randombytes_test.js
@@ -41,6 +42,7 @@ matrix:
       sudo: required
       services: ["docker"]
       before_install:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
       script:
         - docker exec -it emscripten make randombytes_test.js
