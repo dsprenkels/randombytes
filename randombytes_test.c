@@ -58,7 +58,7 @@ static void test_empty(void) {
 	assert(memcmp(buf, zero, sizeof(zero)) == 0);
 }
 
-static void test_getrandom_partial(void) {
+static void test_getrandom_syscall_partial(void) {
 	syscall_called = 0;
 	uint8_t buf[100] = {};
 	const int ret = randombytes(buf, sizeof(buf));
@@ -69,7 +69,7 @@ static void test_getrandom_partial(void) {
 	}
 }
 
-static void test_getrandom_interrupted(void) {
+static void test_getrandom_syscall_interrupted(void) {
 	syscall_called = 0;
 	uint8_t zero[20] = {};
 	uint8_t buf[sizeof(zero)] = {};
@@ -112,11 +112,11 @@ static void test_issue_33(void) {
 #if defined(__linux__) && defined(SYS_getrandom)
 int __wrap_syscall(int n, char *buf, size_t buflen, int flags) {
 	syscall_called++;
-	if (current_test == test_getrandom_partial) {
+	if (current_test == test_getrandom_syscall_partial) {
 		// Fill only 16 bytes, the caller should retry
 		const size_t current_buflen = buflen <= 16 ? buflen : 16;
 		return __real_syscall(n, buf, current_buflen, flags);
-	} else if (current_test == test_getrandom_interrupted) {
+	} else if (current_test == test_getrandom_syscall_interrupted) {
 		if (syscall_called < 5) {
 			errno = EINTR;
 			return -1;
@@ -148,13 +148,16 @@ int main(void) {
 
 	RUN_TEST(test_functional)
 	RUN_TEST(test_empty)
-#if defined(__linux__) && defined(SYS_getrandom)
-	RUN_TEST(test_getrandom_partial)
-	RUN_TEST(test_getrandom_interrupted)
+#if defined(__linux__) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24))
+	SKIP_TEST(test_getrandom_syscall_partial)
+	SKIP_TEST(test_getrandom_syscall_interrupted)
+#elif defined(__linux__) && defined(SYS_getrandom)
+	RUN_TEST(test_getrandom_syscall_partial)
+	RUN_TEST(test_getrandom_syscall_interrupted)
 #else
-	SKIP_TEST(test_getrandom_partial)
-	SKIP_TEST(test_getrandom_interrupted)
-#endif /* defined(__linux__) && defined(SYS_getrandom) */
+	SKIP_TEST(test_getrandom_syscall_partial)
+	SKIP_TEST(test_getrandom_syscall_interrupted)
+#endif /* defined(__linux__) && (defined(SYS_getrandom) or glibc version > 2.24) */
 #if defined(__linux__) && !defined(SYS_getrandom)
 	RUN_TEST(test_issue_17)
 	RUN_TEST(test_issue_22)
