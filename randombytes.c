@@ -13,6 +13,10 @@
 # include <wincrypt.h> /* CryptAcquireContext, CryptGenRandom */
 #endif /* defined(_WIN32) */
 
+/* wasi */
+#if defined(__wasi__)
+#include <stdlib.h>
+#endif
 
 #if defined(__linux__)
 /* Linux */
@@ -78,6 +82,12 @@ static int randombytes_win32_randombytes(void* buf, const size_t n)
 }
 #endif /* defined(_WIN32) */
 
+#if defined(__wasi__)
+static int randombytes_wasi_randombytes(void *buf, size_t n) {
+	arc4random_buf(buf, n);
+	return 0;
+}
+#endif /* defined(__wasi__) */
 
 #if defined(__linux__) && defined(SYS_getrandom)
 static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
@@ -302,6 +312,10 @@ int randombytes(void *buf, size_t n)
 # pragma message("Using Windows cryptographic API")
 	/* Use windows API */
 	return randombytes_win32_randombytes(buf, n);
+#elif defined(__wasi__)
+# pragma message("Using WASI arc4random_buf system call")
+	/* Use WASI */
+	return randombytes_wasi_randombytes(buf, n);
 #else
 # error "randombytes(...) is not supported on this platform"
 #endif
