@@ -96,6 +96,17 @@ static void test_issue_22(void) {
 	assert(memcmp(buf1, buf2, sizeof(buf1)) != 0);
 }
 
+static void test_issue_33(void) {
+	for (size_t idx = 0; idx < 100000; idx++) {
+		uint8_t buf[20] = {};
+		const int ret = randombytes(&buf, sizeof(buf));
+		if (ret != 0) {
+			printf("error: %s\n", strerror(errno));
+		}
+		assert(ret == 0);
+	}
+}
+
 // ======== Mock OS functions to simulate uncommon behavior ========
 
 #if defined(__linux__) && defined(SYS_getrandom)
@@ -147,9 +158,11 @@ int main(void) {
 #if defined(__linux__) && !defined(SYS_getrandom)
 	RUN_TEST(test_issue_17)
 	RUN_TEST(test_issue_22)
+	RUN_TEST(test_issue_33)
 #else
 	SKIP_TEST(test_issue_17)
 	SKIP_TEST(test_issue_22)
+	SKIP_TEST(test_issue_33)
 #endif /* defined(__linux__) && !defined(SYS_getrandom) */
 	return 0;
 }
