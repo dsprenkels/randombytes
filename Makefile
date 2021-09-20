@@ -3,7 +3,7 @@ CFLAGS ?= -g -O2 -std=gnu99 \
 	-Wformat-security -Werror=format-security -Wstrict-prototypes \
 	-D_FORTIFY_SOURCE=2 -fPIC -fno-strict-overflow
 
-TEST_WRAPS := -Wl,-wrap=ioctl,-wrap=syscall
+TEST_WRAPS := -Wl,-wrap=ioctl,-wrap=getrandom,-wrap=syscall
 
 ifeq ($(shell uname -o), GNU/Linux)
 	TEST_LDFLAGS := $(TEST_WRAPS)
