@@ -174,6 +174,9 @@ static int randombytes_linux_wait_for_entropy(int device)
 		strategy = PROC;
 		// Open the entropy count file
 		proc_file = fopen("/proc/sys/kernel/random/entropy_avail", "r");
+		if (proc_file == NULL) {
+			return -1;
+		}
 	} else if (retcode != 0) {
 		// Unrecoverable ioctl error
 		return -1;
