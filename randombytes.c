@@ -1,9 +1,9 @@
 // In the case that are compiling on linux, we need to define _GNU_SOURCE
 // *before* randombytes.h is included. Otherwise SYS_getrandom will not be
 // declared.
-#if defined(__linux__)
+#if defined(__linux__) || defined(__GNU__)
 # define _GNU_SOURCE
-#endif /* defined(__linux__) */
+#endif /* defined(__linux__) || defined(__GNU__) */
 
 #include "randombytes.h"
 
@@ -18,7 +18,12 @@
 #include <stdlib.h>
 #endif
 
-#if defined(__linux__)
+/* kFreeBSD */
+#if defined(__FreeBSD_kernel__) && defined(__GLIBC__)
+# define GNU_KFREEBSD
+#endif
+
+#if defined(__linux__) || defined(__GNU__) || defined(GNU_KFREEBSD)
 /* Linux */
 // We would need to include <linux/random.h>, but not every target has access
 // to the linux headers. We only need RNDGETENTCNT, so we instead inline it.
@@ -33,10 +38,10 @@
 # include <stdint.h>
 # include <stdio.h>
 # include <sys/ioctl.h>
-# if defined(__linux__) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24))
+# if (defined(__linux__) || defined(__GNU__)) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24))
 #  define USE_GLIBC
 #  include <sys/random.h>
-# endif /* defined(__linux__) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24)) */
+# endif /* (defined(__linux__) || defined(__GNU__)) && defined(__GLIBC__) && ((__GLIBC__ > 2) || (__GLIBC_MINOR__ > 24)) */
 # include <sys/stat.h>
 # include <sys/syscall.h>
 # include <sys/types.h>
@@ -47,7 +52,7 @@
 #  define SSIZE_MAX (SIZE_MAX / 2 - 1)
 # endif /* defined(SSIZE_MAX) */
 
-#endif /* defined(__linux__) */
+#endif /* defined(__linux__) || defined(__GNU__) || defined(GNU_KFREEBSD) */
 
 
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
@@ -55,6 +60,10 @@
 # include <sys/param.h>
 # if defined(BSD)
 #  include <stdlib.h>
+# endif
+/* GNU/Hurd defines BSD in sys/param.h which causes problems later */
+# if defined(__GNU__)
+#  undef BSD
 # endif
 #endif
 
@@ -93,7 +102,7 @@ static int randombytes_wasi_randombytes(void *buf, size_t n) {
 }
 #endif /* defined(__wasi__) */
 
-#if defined(__linux__) && (defined(USE_GLIBC) || defined(SYS_getrandom))
+#if (defined(__linux__) || defined(__GNU__)) && (defined(USE_GLIBC) || defined(SYS_getrandom))
 # if defined(USE_GLIBC)
 // getrandom is declared in glibc.
 # elif defined(SYS_getrandom)
@@ -123,10 +132,11 @@ static int randombytes_linux_randombytes_getrandom(void *buf, size_t n)
 	assert(n == 0);
 	return 0;
 }
-#endif // defined(__linux__) && (defined(USE_GLIBC) || defined(SYS_getrandom))
+#endif /* (defined(__linux__) || defined(__GNU__)) && (defined(USE_GLIBC) || defined(SYS_getrandom)) */
 
+#if (defined(__linux__) || defined(GNU_KFREEBSD)) && !defined(SYS_getrandom)
 
-#if defined(__linux__) && !defined(SYS_getrandom)
+# if defined(__linux__)
 static int randombytes_linux_read_entropy_ioctl(int device, int *entropy)
 {
 	return ioctl(device, RNDGETENTCNT, entropy);
@@ -174,6 +184,9 @@ static int randombytes_linux_wait_for_entropy(int device)
 		strategy = PROC;
 		// Open the entropy count file
 		proc_file = fopen("/proc/sys/kernel/random/entropy_avail", "r");
+		if (proc_file == NULL) {
+			return -1;
+		}
 	} else if (retcode != 0) {
 		// Unrecoverable ioctl error
 		return -1;
@@ -232,6 +245,7 @@ static int randombytes_linux_wait_for_entropy(int device)
 	}
 	return retcode;
 }
+# endif /* defined(__linux__) */
 
 
 static int randombytes_linux_randombytes_urandom(void *buf, size_t n)
@@ -243,7 +257,9 @@ static int randombytes_linux_randombytes_urandom(void *buf, size_t n)
 		fd = open("/dev/urandom", O_RDONLY);
 	} while (fd == -1 && errno == EINTR);
 	if (fd == -1) return -1;
+# if defined(__linux__)
 	if (randombytes_linux_wait_for_entropy(fd) == -1) return -1;
+# endif
 
 	while (n > 0) {
 		count = n <= SSIZE_MAX ? n : SSIZE_MAX;
@@ -307,7 +323,7 @@ int randombytes(void *buf, size_t n)
 #if defined(__EMSCRIPTEN__)
 # pragma message("Using crypto api from NodeJS")
 	return randombytes_js_randombytes_nodejs(buf, n);
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__GNU__) || defined(GNU_KFREEBSD)
 # if defined(USE_GLIBC)
 #  pragma message("Using getrandom function call")
 	/* Use getrandom system call */
