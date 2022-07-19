@@ -1,0 +1,21 @@
+---
+name: Tests
+on: [push, pull_request]
+
+jobs:
+  Test-Randombytes:
+    runs-on: "${{ matrix.os }}"
+    strategy:
+      matrix:
+        cc:
+          - gcc
+          - clang
+        os:
+          - ubuntu-latest
+          - macos-latest
+    env:
+      CC: "${{ matrix.cc }}"
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          make check

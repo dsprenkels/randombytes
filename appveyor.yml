@@ -1,3 +1,0 @@
-image: Visual Studio 2015
-build_script:
-- cmd: clang -c randombytes.c
