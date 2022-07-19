@@ -76,17 +76,24 @@
 
 
 #if defined(_WIN32)
-static int randombytes_win32_randombytes(void* buf, const size_t n)
+static int randombytes_win32_randombytes(void* buf, size_t n)
 {
 	HCRYPTPROV ctx;
 	BOOL tmp;
+	DWORD to_read = 0;
+	const size_t MAX_DWORD = 0xFFFFFFFF;
 
 	tmp = CryptAcquireContext(&ctx, NULL, NULL, PROV_RSA_FULL,
 	                          CRYPT_VERIFYCONTEXT);
 	if (tmp == FALSE) return -1;
 
-	tmp = CryptGenRandom(ctx, n, (BYTE*) buf);
-	if (tmp == FALSE) return -1;
+	while (n > 0) {
+		to_read = (DWORD)(n < MAX_DWORD ? n : MAX_DWORD);
+		tmp = CryptGenRandom(ctx, to_read, (BYTE*) buf);
+		if (tmp == FALSE) return -1;
+		buf = ((char*)buf) + to_read;
+		n -= to_read;
+	}
 
 	tmp = CryptReleaseContext(ctx, 0);
 	if (tmp == FALSE) return -1;
