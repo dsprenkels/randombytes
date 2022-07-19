@@ -42,4 +42,4 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.arch }}
-      - run: cl /nologo /W3 /WX randombytes.c
+      - run: cl /c /nologo /W3 /WX randombytes.c
