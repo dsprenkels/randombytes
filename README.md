@@ -1,7 +1,6 @@
 # Pluggable randombytes function
 
-[![Travis-CI](https://travis-ci.org/dsprenkels/sss.svg?branch=master)](https://travis-ci.org/dsprenkels/randombytes)
-[![Appveyor](https://ci.appveyor.com/api/projects/status/github/dsprenkels/randombytes?branch=master&svg=true)](https://ci.appveyor.com/project/dsprenkels/randombytes)
+[![GitHub Actions](https://github.com/dsprenkels/randombytes/workflows/Tests/badge.svg)](https://github.com/dsprenkels/randombytes/actions/workflows/test.yml)
 
 `randombytes` is a library that exposes a single function for retrieving
 _crypto-secure_ random bytes. It is loosely based on [Libsodium's random bytes
