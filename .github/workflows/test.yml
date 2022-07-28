@@ -1,0 +1,45 @@
+---
+name: Tests
+on: [push, pull_request]
+
+jobs:
+  Test-Randombytes:
+    runs-on: "${{ matrix.os }}"
+    strategy:
+      matrix:
+        cc:
+          - gcc
+          - clang
+        os:
+          - ubuntu-latest
+          - macos-latest
+    env:
+      CC: "${{ matrix.cc }}"
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          make check
+
+  Test-Randombytes-Musl:
+    runs-on: ubuntu-latest
+    env:
+      CC: musl-gcc
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install musl-tools
+        run: sudo apt-get install -y musl-tools
+      - run: make check
+
+  Test-Randombytes-Windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch:
+          - x64
+          - x86
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+      - run: cl /c /nologo /W3 /WX randombytes.c
